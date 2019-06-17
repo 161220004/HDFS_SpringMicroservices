@@ -1,0 +1,26 @@
+<!DOCTYPE html SYSTEM "http://www.thymeleaf.org/dtd/xhtml1-strict-thymeleaf-spring4-4.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml"
+	xmlns:th="http://www.thymeleaf.org">
+
+<head th:replace="header :: copy"></head>
+
+<body>
+	<h1>NameNode(HDFS)</h1>
+
+	<p>The NameNode of Hadoop Distributed File System.</p>
+
+	<button></button>
+
+	<h3>DataNode URLs</h3>
+	<p>Default datanodes in the HDFS. </p>
+
+	<ul>
+		<li><a th:href="@{/}">DataNode 1</a></li>
+		<li><a th:href="@{/}">DataNode 2</a></li>
+		<li><a th:href="@{/}">DataNode 3</a></li>
+	</ul>
+
+	<div th:replace="footer :: copy"></div>
+
+</body>
+</html>
