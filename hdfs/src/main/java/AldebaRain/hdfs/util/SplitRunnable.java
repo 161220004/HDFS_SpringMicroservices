@@ -1,4 +1,4 @@
-package AldebaRain.hdfs.namenode.util;
+package AldebaRain.hdfs.util;
 
 import java.io.IOException;
 import java.io.RandomAccessFile;
@@ -46,7 +46,7 @@ public class SplitRunnable implements Runnable {
 			rfile.seek(startPos);
 			// 从分割起点开始读取
 			int bNum = rfile.read(block);
-			System.out.println(blockName + ": Split " + Math.round((double) bNum / (1024.0 * 1024.0)) + "M");
+			System.out.println(blockName + ": Split " + bNum + "B (" + Math.round((double) bNum / (1024.0 * 1024.0)) + "M)");
 			
 			// 写入为块文件
 //			fos = new FileOutputStream(blockName);

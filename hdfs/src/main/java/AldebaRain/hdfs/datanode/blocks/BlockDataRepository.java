@@ -1,9 +1,9 @@
-package AldebaRain.hdfs.datanode;
+package AldebaRain.hdfs.datanode.blocks;
 
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
 @Repository
-public interface DataNodeInfoRepository extends JpaRepository<DataNodeInfo, Integer> {
+public interface BlockDataRepository extends JpaRepository<BlockData, Integer> {
 
 }

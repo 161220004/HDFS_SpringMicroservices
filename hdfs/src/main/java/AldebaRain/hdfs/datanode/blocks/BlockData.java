@@ -7,14 +7,14 @@ import javax.persistence.GeneratedValue;
 import javax.persistence.Id;
 
 @Entity
-public class BlockInfo implements Serializable {
+public class BlockData implements Serializable {
 
-	private static final long serialVersionUID = 4628294585624054317L;
+	private static final long serialVersionUID = -1666644079279045084L;
 
 	@Id 
 	@GeneratedValue
 	private Integer id;
-	
+
 	/** 文件名 */
 	private String filename;
 
@@ -24,14 +24,18 @@ public class BlockInfo implements Serializable {
 	/** 该块id */
 	private Integer blockId;
 	
-	public BlockInfo() {}
-	
-	public BlockInfo(String filename, int blockNum, Integer blockId) {
+	/** 块内容 */
+	private byte[] data;
+
+	public BlockData() {}
+
+	public BlockData(String filename, int blockNum, Integer blockId, byte[] data) {
 		this.filename = filename;
 		this.blockId = blockId;
 		this.blockNum = blockNum;
+		this.data = data;
 	}
-	
+
 	public String getFilename() {
 		return filename;
 	}
@@ -49,6 +53,12 @@ public class BlockInfo implements Serializable {
 	}
 	public void setBlockId(Integer blockId) {
 		this.blockId = blockId;
+	}
+	public byte[] getData() {
+		return data;
+	}
+	public void setData(byte[] data) {
+		this.data = data;
 	}
 	
 }

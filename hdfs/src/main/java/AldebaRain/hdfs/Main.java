@@ -11,7 +11,7 @@ import AldebaRain.hdfs.namenode.NameNodeServer;
 public class Main {
 
 	/** 块大小，为64MB */
-	public final static int BlockSize = 1 * 1024 * 1024;
+	public final static int BlockSize = 8; //64 * 1024 * 1024;
 	
 	public static void main(String[] args) {
 

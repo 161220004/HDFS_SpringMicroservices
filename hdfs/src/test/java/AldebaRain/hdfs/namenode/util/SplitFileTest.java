@@ -9,7 +9,7 @@ import java.util.Map;
 
 import org.junit.Test;
 
-import AldebaRain.hdfs.namenode.util.SplitFile;
+import AldebaRain.hdfs.util.SplitFile;
 
 public class SplitFileTest {
 	

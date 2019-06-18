@@ -15,12 +15,15 @@ spring:
 #error.path: /error
 
 # HTTP Server
-server.port: 8090   # HTTP (Tomcat) port
+server:
+  port: 8090   # HTTP (Tomcat) port
 
 # Discovery Server Access
 #  1. DEV ONLY: Reduce the lease renewal interval to speed up registration
 #  2. Define URL of registration server (defaultZone)
 eureka:
+  instance:
+    hostname: localhost
   client:
     serviceUrl:
       defaultZone: http://localhost:8081/eureka/

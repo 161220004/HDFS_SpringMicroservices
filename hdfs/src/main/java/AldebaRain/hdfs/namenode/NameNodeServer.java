@@ -7,7 +7,7 @@ import org.springframework.context.annotation.ComponentScan;
 
 @EnableAutoConfiguration
 @EnableDiscoveryClient
-@ComponentScan("AldebaRain.hdfs.namenode")
+@ComponentScan({"AldebaRain.hdfs.namenode"})
 public class NameNodeServer {
 
 	public static void main(String[] args) {
