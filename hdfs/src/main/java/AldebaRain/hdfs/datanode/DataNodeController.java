@@ -16,6 +16,7 @@ import org.springframework.cloud.client.serviceregistry.Registration;
 import org.springframework.hateoas.Resource;
 import org.springframework.hateoas.Resources;
 import org.springframework.stereotype.Controller;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -71,7 +72,7 @@ public class DataNodeController {
     		System.arraycopy(data.getData(), 0, partData, 0, showNum);
     		blockStrs.add(data.getFilename() + 
     				"(" + data.getBlockId() + "/" + data.getBlockNum() + "): " + 
-    				new String(data.getData()) + "..., length = " + data.getLength());
+    				new String(partData) + "..., length = " + data.getLength());
     	}
     	List<Resource<String>> blockRes = blockStrs.stream()
                 .map(str -> new Resource<>(str)).collect(Collectors.toList());
@@ -92,8 +93,7 @@ public class DataNodeController {
 		return "Save Block Success";
     }
     
-    /** 下载文件块 
-     * @throws UnsupportedEncodingException */
+    /** 下载文件块 */
     @GetMapping("/blocks/{identityUrl}")
     public @ResponseBody 
     Block getBlock(@PathVariable String identityUrl) {
@@ -105,8 +105,30 @@ public class DataNodeController {
 			e.printStackTrace();
 		}
     	logger.info("DownLoad Block: " + identity + "(" + identityUrl + ")");
-    	BlockData blockData = blockDataRepository.findByIdentity(identity);
+    	List<BlockData> blockDatas = blockDataRepository.findAllByIdentity(identity);
+    	int index = (int) (Math.random() * blockDatas.size());
+    	BlockData blockData = blockDatas.get(index);
     	return new Block(identity, blockData.getData(), blockData.getLength());
     }
-    
+
+    /** 删除文件块 */
+    @DeleteMapping("/blocks/{identityUrl}")
+    public @ResponseBody 
+    String deleteBlock(@PathVariable String identityUrl) {
+		// 转换URL的转义字符
+    	String identity = "";
+		try {
+			identity = URLDecoder.decode(identityUrl, "UTF-8");
+		} catch (UnsupportedEncodingException e) {
+			e.printStackTrace();
+		}
+    	logger.info("Delete Block: " + identity + "(" + identityUrl + ")");
+    	List<BlockInfo> blockInfos = blockInfoRepository.findAllByIdentity(identity);
+    	List<BlockData> blockDatas = blockDataRepository.findAllByIdentity(identity);
+    	for (BlockInfo blockInfo: blockInfos)
+    		blockInfoRepository.delete(blockInfo);
+    	for (BlockData blockData: blockDatas)
+    		blockDataRepository.delete(blockData);
+    	return new String("Delete Block " + identityUrl + "(copyNum = " + blockInfos.size() + ") Success");
+    }
 }

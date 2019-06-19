@@ -23,6 +23,7 @@ import org.springframework.hateoas.Resource;
 import org.springframework.hateoas.Resources;
 import org.springframework.http.HttpMethod;
 import org.springframework.stereotype.Controller;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -126,14 +127,7 @@ public class NameNodeController {
 	@GetMapping("/files/{filenameUrl}")
 	public @ResponseBody 
 	Resources<Resource<String>> getFile(@PathVariable String filenameUrl) {
-		// 转换URL的转义字符
-    	String filename = "";
-		try {
-			filename = URLDecoder.decode(filenameUrl, "UTF-8");
-		} catch (UnsupportedEncodingException e) {
-			e.printStackTrace();
-		}
-		filename = filename.replace('?', '/');
+		String filename = getFilenameFromUrl(filenameUrl);
     	logger.info("DownLoad File: " + filename);
     	// 下载成功的显示信息
         List<String> uriStrs = new ArrayList<>(); 
@@ -147,12 +141,7 @@ public class NameNodeController {
         for (BlockMap blockMap: blockMaps.values()) {
         	Integer blockId = blockMap.getBlockId();
         	String identity = Block.toIdentity(filename, blockId);
-        	String identityUrl = "";
-			try {
-				identityUrl = URLEncoder.encode(identity, "UTF-8");
-			} catch (UnsupportedEncodingException e) {
-				e.printStackTrace();
-			}
+        	String identityUrl = getUrlFromIdentity(identity);
         	// 随机选择一个含有该块的DataNode
         	List<String> uris = blockMap.getUris();
         	int index = (int) (Math.random() * uris.size());
@@ -174,10 +163,71 @@ public class NameNodeController {
 		return new Resources<>(uriRes
 				, linkTo(methodOn(NameNodeController.class).saveFile(filename)).withSelfRel());
 	}
+
+	/** 删除 
+	 * @param filenameUrl: '/'和'\'在URL里面有点问题，替换成了'?' */
+	@DeleteMapping("/files/{filenameUrl}")
+	public @ResponseBody 
+	Resources<Resource<String>> deleteFile(@PathVariable String filenameUrl) {
+		String filename = getFilenameFromUrl(filenameUrl);
+    	logger.info("Delete File: " + filename);
+    	// 下载成功的显示信息
+        List<String> uriStrs = new ArrayList<>(); 
+		// 刷新，获取当前活动的DataNode列表以及当前fileMaps
+        this.refreshFileMaps();
+        //if (fileMaps.containsKey(filename))
+        FileMap fileMap = fileMaps.get(filename);
+        Map<Integer, BlockMap> blockMaps = fileMap.getBlockMaps();
+        for (BlockMap blockMap: blockMaps.values()) {
+        	Integer blockId = blockMap.getBlockId();
+        	String identity = Block.toIdentity(filename, blockId);
+        	String identityUrl = getUrlFromIdentity(identity);
+        	// 遍历全部含有该块的DataNode
+        	List<String> uris = blockMap.getUris();
+        	for (String uri: uris) {
+        		// 调用DataNode的方法删除块
+                String api = getApiByUri(uri, new String("blocks/" + identityUrl));
+            	logger.info("Delete Block: " + identity + ", url = " + api);
+                restTemplate.delete(api);
+            	// 便于显示结果
+                uriStrs.add(new String(blockId + ":" + uri + ", "));
+        	}
+        }
+		// 刷新当前fileMaps
+        fileMaps.remove(filename);
+        
+    	List<Resource<String>> uriRes = uriStrs.stream()
+                .map(str -> new Resource<>(str)).collect(Collectors.toList());
+		return new Resources<>(uriRes
+				, linkTo(methodOn(NameNodeController.class).saveFile(filename)).withSelfRel());
+	}
 	
 	/** 根据主机和端口获取服务接口地址 */
 	private String getApiByUri(String uri, String api) {
 		return new String(uri + "/" + api);
+	}
+	
+	/** 将文件名URL转成filename */
+	private String getFilenameFromUrl(String filenameUrl) {
+		// 转换URL的转义字符
+    	String filename = "";
+		try {
+			filename = URLDecoder.decode(filenameUrl, "UTF-8");
+		} catch (UnsupportedEncodingException e) {
+			e.printStackTrace();
+		}
+		return filename.replace('?', '/');
+	}
+	
+	/** 将block的identity转成url形 */
+	private String getUrlFromIdentity(String identity) {
+    	String identityUrl = "";
+		try {
+			identityUrl = URLEncoder.encode(identity, "UTF-8");
+		} catch (UnsupportedEncodingException e) {
+			e.printStackTrace();
+		}
+		return identityUrl;
 	}
 	
 	/** 添加一个文件块信息到fileMaps */
