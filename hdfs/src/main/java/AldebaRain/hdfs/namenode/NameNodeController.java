@@ -12,6 +12,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
+import javax.servlet.http.HttpServletRequest;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -45,6 +47,9 @@ public class NameNodeController {
 	@Autowired
 	private DiscoveryClient discoveryClient;
 
+	@Autowired
+	private HttpServletRequest httpServletRequest;
+	
     @Bean
     RestTemplate restTemplate() {
         return new RestTemplate();
@@ -124,10 +129,12 @@ public class NameNodeController {
 	
 	/** 下载文件 
 	 * @param filenameUrl: '/'和'\'在URL里面有点问题，替换成了'?' */
-	@GetMapping("/files/{filenameUrl}")
+	@GetMapping("/files/**")
 	public @ResponseBody 
-	Resources<Resource<String>> getFile(@PathVariable String filenameUrl) {
-		String filename = getFilenameFromUrl(filenameUrl);
+	Resources<Resource<String>> getFile() {
+		String path = httpServletRequest.getRequestURI();
+		String filename = getFilenameFromUrl(path.substring(new String("/files/").length()));
+		//String[] pathStrs = filename.split("[/]");
     	logger.info("DownLoad File: " + filename);
     	// 下载成功的显示信息
         List<String> uriStrs = new ArrayList<>(); 
@@ -141,7 +148,7 @@ public class NameNodeController {
         for (BlockMap blockMap: blockMaps.values()) {
         	Integer blockId = blockMap.getBlockId();
         	String identity = Block.toIdentity(filename, blockId);
-        	String identityUrl = getUrlFromIdentity(identity);
+        	String identityUrl = Block.toIdentityUrl(filename, blockId);
         	// 随机选择一个含有该块的DataNode
         	List<String> uris = blockMap.getUris();
         	int index = (int) (Math.random() * uris.size());
@@ -166,10 +173,12 @@ public class NameNodeController {
 
 	/** 删除 
 	 * @param filenameUrl: '/'和'\'在URL里面有点问题，替换成了'?' */
-	@DeleteMapping("/files/{filenameUrl}")
+	@DeleteMapping("/files/**")
 	public @ResponseBody 
-	Resources<Resource<String>> deleteFile(@PathVariable String filenameUrl) {
-		String filename = getFilenameFromUrl(filenameUrl);
+	Resources<Resource<String>> deleteFile() {
+		String path = httpServletRequest.getRequestURI();
+		String filename = getFilenameFromUrl(path.substring(new String("/files/").length()));
+		//String[] pathStrs = filename.split("[/]");
     	logger.info("Delete File: " + filename);
     	// 下载成功的显示信息
         List<String> uriStrs = new ArrayList<>(); 
@@ -181,7 +190,7 @@ public class NameNodeController {
         for (BlockMap blockMap: blockMaps.values()) {
         	Integer blockId = blockMap.getBlockId();
         	String identity = Block.toIdentity(filename, blockId);
-        	String identityUrl = getUrlFromIdentity(identity);
+        	String identityUrl = Block.toIdentityUrl(filename, blockId);
         	// 遍历全部含有该块的DataNode
         	List<String> uris = blockMap.getUris();
         	for (String uri: uris) {
@@ -216,18 +225,7 @@ public class NameNodeController {
 		} catch (UnsupportedEncodingException e) {
 			e.printStackTrace();
 		}
-		return filename.replace('?', '/');
-	}
-	
-	/** 将block的identity转成url形 */
-	private String getUrlFromIdentity(String identity) {
-    	String identityUrl = "";
-		try {
-			identityUrl = URLEncoder.encode(identity, "UTF-8");
-		} catch (UnsupportedEncodingException e) {
-			e.printStackTrace();
-		}
-		return identityUrl;
+		return filename;
 	}
 	
 	/** 添加一个文件块信息到fileMaps */

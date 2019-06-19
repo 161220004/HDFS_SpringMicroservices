@@ -28,6 +28,11 @@ public class Block implements Serializable {
 	public static String toIdentity(String name, Integer id) {
 		return new String(name + "?" + id);
 	}
+
+	/** filename+id转identity(Url格式) */
+	public static String toIdentityUrl(String name, Integer id) {
+		return new String(name + "%3F" + id);
+	}
 	
 	public Block() {}
 	

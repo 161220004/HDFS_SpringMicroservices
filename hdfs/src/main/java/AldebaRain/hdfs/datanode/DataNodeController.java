@@ -9,6 +9,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
+import javax.servlet.http.HttpServletRequest;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -18,7 +20,6 @@ import org.springframework.hateoas.Resources;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.ResponseBody;
@@ -34,6 +35,9 @@ public class DataNodeController {
 	@Autowired
     private Registration registration; // 服务注册
 
+	@Autowired
+	private HttpServletRequest httpServletRequest;
+	
 	@Autowired
 	private BlockInfoRepository blockInfoRepository;
 
@@ -94,16 +98,13 @@ public class DataNodeController {
     }
     
     /** 下载文件块 */
-    @GetMapping("/blocks/{identityUrl}")
+    @GetMapping("/blocks/**")
     public @ResponseBody 
-    Block getBlock(@PathVariable String identityUrl) {
-		// 转换URL的转义字符
-    	String identity = "";
-		try {
-			identity = URLDecoder.decode(identityUrl, "UTF-8");
-		} catch (UnsupportedEncodingException e) {
-			e.printStackTrace();
-		}
+    Block getBlock() {
+		String path = httpServletRequest.getRequestURI();
+		String identityUrl = path.substring(new String("/blocks/").length());
+		String identity = getIdentityFromUrl(identityUrl);
+		//String[] pathStrs = identity.split("[/]");
     	logger.info("DownLoad Block: " + identity + "(" + identityUrl + ")");
     	List<BlockData> blockDatas = blockDataRepository.findAllByIdentity(identity);
     	int index = (int) (Math.random() * blockDatas.size());
@@ -112,16 +113,13 @@ public class DataNodeController {
     }
 
     /** 删除文件块 */
-    @DeleteMapping("/blocks/{identityUrl}")
+    @DeleteMapping("/blocks/**")
     public @ResponseBody 
-    String deleteBlock(@PathVariable String identityUrl) {
-		// 转换URL的转义字符
-    	String identity = "";
-		try {
-			identity = URLDecoder.decode(identityUrl, "UTF-8");
-		} catch (UnsupportedEncodingException e) {
-			e.printStackTrace();
-		}
+    String deleteBlock() {
+		String path = httpServletRequest.getRequestURI();
+		String identityUrl = path.substring(new String("/blocks/").length());
+		String identity = getIdentityFromUrl(identityUrl);
+		//String[] pathStrs = identity.split("[/]");
     	logger.info("Delete Block: " + identity + "(" + identityUrl + ")");
     	List<BlockInfo> blockInfos = blockInfoRepository.findAllByIdentity(identity);
     	List<BlockData> blockDatas = blockDataRepository.findAllByIdentity(identity);
@@ -131,4 +129,18 @@ public class DataNodeController {
     		blockDataRepository.delete(blockData);
     	return new String("Delete Block " + identityUrl + "(copyNum = " + blockInfos.size() + ") Success");
     }
+
+	/** 将block的URL转成identity */
+	private String getIdentityFromUrl(String identityUrl) {
+		// 转换URL的转义字符
+    	String identity = "";
+		try {
+			identity = URLDecoder.decode(identityUrl, "UTF-8");
+			identity = URLDecoder.decode(identity, "UTF-8");
+		} catch (UnsupportedEncodingException e) {
+			e.printStackTrace();
+		}
+		return identity;
+	}
+	
 }
