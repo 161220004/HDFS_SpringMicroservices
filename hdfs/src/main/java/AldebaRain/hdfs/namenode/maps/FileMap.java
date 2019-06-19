@@ -1,6 +1,8 @@
-package AldebaRain.hdfs.namenode;
+package AldebaRain.hdfs.namenode.maps;
 
 import java.io.Serializable;
+import java.io.UnsupportedEncodingException;
+import java.net.URLEncoder;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -43,11 +45,24 @@ public class FileMap implements Serializable {
 	public String getFilename() {
 		return filename;
 	}
+	
 	public int getBlockNum() {
 		return blockNum;
 	}
+	
+	public Map<Integer, BlockMap> getBlockMaps() {
+		return blockMaps;
+	}
+	
 	public String toString() {
-		StringBuilder tmp = new StringBuilder("File '" + filename + "'(bn=" + blockNum + "): [");
+		StringBuilder tmp = new StringBuilder("File '" + filename + "' ");
+		try {
+			tmp.append("(bn=" + blockNum + 
+					", url='" + URLEncoder.encode(filename.replace('/', '?'), "UTF-8") + "')");
+		} catch (UnsupportedEncodingException e) {
+			e.printStackTrace();
+		}
+		tmp.append(": [");
 		for (Entry<Integer, BlockMap> map: blockMaps.entrySet()) {
 			tmp.append(map.getKey() + ":" + map.getValue().toString() + ", ");
 		}

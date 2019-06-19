@@ -3,6 +3,9 @@ package AldebaRain.hdfs.namenode;
 import static org.springframework.hateoas.mvc.ControllerLinkBuilder.linkTo;
 import static org.springframework.hateoas.mvc.ControllerLinkBuilder.methodOn;
 
+import java.io.UnsupportedEncodingException;
+import java.net.URLDecoder;
+import java.net.URLEncoder;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -28,7 +31,9 @@ import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.client.RestTemplate;
 
 import AldebaRain.hdfs.Block;
-import AldebaRain.hdfs.Main;
+import AldebaRain.hdfs.namenode.maps.BlockMap;
+import AldebaRain.hdfs.namenode.maps.FileMap;
+import AldebaRain.hdfs.util.CombineFile;
 import AldebaRain.hdfs.util.SplitFile;
 
 @Controller
@@ -78,37 +83,95 @@ public class NameNodeController {
 	}
 
 	/** 上传文件 */
-	@PostMapping("/upload")
+	@PostMapping("/files")
 	public @ResponseBody 
 	Resources<Resource<String>> saveFile(@RequestParam String filename) {
 		// 分割文件并保存至blocks
-		SplitFile splitFile = new SplitFile(filename, Main.BlockSize);
-		Map<Integer, byte[]> blocks = splitFile.split();
+		SplitFile splitFile = new SplitFile(filename);
+		List<Block> blocks = splitFile.split();
 		int blockNum = splitFile.getBlockNum();
 		// 刷新，获取当前活动的DataNode列表以及当前fileMaps
         this.refreshFileMaps();
-        int datanodeNum = datanodeList.size();
         
         List<String> blockStrs = new ArrayList<>(); // 上传成功的显示信息
         // 发送所有块
-        for (Integer blockId: blocks.keySet()) {
+        for (Block block: blocks) {
         	// 负载均衡：随机在DataNode列表中选择一个
-        	int index = (int) (Math.random() * datanodeNum);
+        	int index = (int) (Math.random() * datanodeList.size());
             // 封装发送的块数据
-    		Block blockData = new Block(filename, blockNum, blockId, blocks.get(blockId));
+        	Integer blockId = block.getBlockId();
+    		Block blockData = new Block(filename, blockNum, blockId, block.getData(), block.getLength());
     		// 调用DataNode的方法上传块
         	String uri = String.valueOf(datanodeList.get(index).getUri());
             String api = getApiByUri(uri, "blocks");
-            String body = restTemplate.postForEntity(api, blockData, String.class).getBody();
+            restTemplate.postForEntity(api, blockData, String.class).getBody();
             // 添加上传块的信息到fileMaps
             Block blockInfo = new Block(filename, blockNum, blockId);
             addBlockToMap(blockInfo, uri);
-            
-            blockStrs.add(new String(blocks.get(blockId)));
+            // 便于显示结果
+            int len = block.getLength();
+        	int showNum = (8 < len) ? 8 : len; // 显示的byte数
+    		byte[] partData = new byte[showNum];
+    		System.arraycopy(block.getData(), 0, partData, 0, showNum);
+            blockStrs.add(new String(partData));
         }
     	List<Resource<String>> blockRes = blockStrs.stream()
                 .map(str -> new Resource<>(str)).collect(Collectors.toList());
 		return new Resources<>(blockRes
+				, linkTo(methodOn(NameNodeController.class).saveFile(filename)).withSelfRel());
+	}
+	
+	/** 下载文件 
+	 * @param filenameUrl: '/'和'\'在URL里面有点问题，替换成了'?' */
+	@GetMapping("/files/{filenameUrl}")
+	public @ResponseBody 
+	Resources<Resource<String>> getFile(@PathVariable String filenameUrl) {
+		// 转换URL的转义字符
+    	String filename = "";
+		try {
+			filename = URLDecoder.decode(filenameUrl, "UTF-8");
+		} catch (UnsupportedEncodingException e) {
+			e.printStackTrace();
+		}
+		filename = filename.replace('?', '/');
+    	logger.info("DownLoad File: " + filename);
+    	// 下载成功的显示信息
+        List<String> uriStrs = new ArrayList<>(); 
+		// 刷新，获取当前活动的DataNode列表以及当前fileMaps
+        this.refreshFileMaps();
+        //if (fileMaps.containsKey(filename))
+        FileMap fileMap = fileMaps.get(filename);
+        Map<Integer, BlockMap> blockMaps = fileMap.getBlockMaps();
+        // 获取byte数组的List
+        List<Block> blockList = new ArrayList<>();
+        for (BlockMap blockMap: blockMaps.values()) {
+        	Integer blockId = blockMap.getBlockId();
+        	String identity = Block.toIdentity(filename, blockId);
+        	String identityUrl = "";
+			try {
+				identityUrl = URLEncoder.encode(identity, "UTF-8");
+			} catch (UnsupportedEncodingException e) {
+				e.printStackTrace();
+			}
+        	// 随机选择一个含有该块的DataNode
+        	List<String> uris = blockMap.getUris();
+        	int index = (int) (Math.random() * uris.size());
+    		// 调用DataNode的方法下载块
+        	String uri = uris.get(index);
+            String api = getApiByUri(uri, new String("blocks/" + identityUrl));
+        	logger.info("DownLoad Block: " + identity + ", url = " + api);
+            Block block = restTemplate.getForEntity(api, Block.class).getBody();
+            blockList.add(block);
+        	// 便于显示结果
+            uriStrs.add(new String(blockId + ":" + uri + ", "));
+        }
+        // 组合块并保存
+        CombineFile combineFile = new CombineFile(filename, blockList);
+        combineFile.write();
+        
+    	List<Resource<String>> uriRes = uriStrs.stream()
+                .map(str -> new Resource<>(str)).collect(Collectors.toList());
+		return new Resources<>(uriRes
 				, linkTo(methodOn(NameNodeController.class).saveFile(filename)).withSelfRel());
 	}
 	

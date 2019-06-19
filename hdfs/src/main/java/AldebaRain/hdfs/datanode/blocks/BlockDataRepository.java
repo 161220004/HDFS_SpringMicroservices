@@ -6,4 +6,6 @@ import org.springframework.stereotype.Repository;
 @Repository
 public interface BlockDataRepository extends JpaRepository<BlockData, Integer> {
 
+	BlockData findByIdentity(String identity);
+	
 }

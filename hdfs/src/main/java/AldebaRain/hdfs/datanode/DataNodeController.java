@@ -3,6 +3,8 @@ package AldebaRain.hdfs.datanode;
 import static org.springframework.hateoas.mvc.ControllerLinkBuilder.linkTo;
 import static org.springframework.hateoas.mvc.ControllerLinkBuilder.methodOn;
 
+import java.io.UnsupportedEncodingException;
+import java.net.URLDecoder;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -15,6 +17,7 @@ import org.springframework.hateoas.Resource;
 import org.springframework.hateoas.Resources;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.ResponseBody;
@@ -25,7 +28,7 @@ import AldebaRain.hdfs.datanode.blocks.*;
 @Controller
 public class DataNodeController {
 
-	private Logger logger = LoggerFactory.getLogger(DataNodeServer.class);
+	private Logger logger = LoggerFactory.getLogger(DataNodeController.class);
 	
 	@Autowired
     private Registration registration; // 服务注册
@@ -45,10 +48,15 @@ public class DataNodeController {
         return "DataNode (" + instanceId + ") start at port " + registration.getPort() + "\n    uri = " + uri;
     }
 
+    /** BlockReport，告知NameNode自己拥有的block */
     @GetMapping("/report")
     public @ResponseBody 
-    List<BlockInfo> blockReport() {
-    	return blockInfoRepository.findAll();
+    List<Block> blockReport() {
+    	 List<BlockInfo> blockInfos = blockInfoRepository.findAll();
+    	 List<Block> blocks = new ArrayList<>();
+    	 for (BlockInfo blockInfo: blockInfos)
+    		 blocks.add(new Block(blockInfo.getFilename(), blockInfo.getBlockNum(), blockInfo.getBlockId()));
+    	return blocks;
     }
 
     @GetMapping("/blocks")
@@ -56,13 +64,14 @@ public class DataNodeController {
     Resources<Resource<String>> showBlock() {
     	List<BlockData> blockList = blockDataRepository.findAll();
     	List<String> blockStrs = new ArrayList<>();
-    	int showNum = 8; // 显示的byte数
     	for (BlockData data: blockList) {
+            int len = data.getLength();
+        	int showNum = (8 < len) ? 8 : len; // 显示的byte数
     		byte[] partData = new byte[showNum];
     		System.arraycopy(data.getData(), 0, partData, 0, showNum);
     		blockStrs.add(data.getFilename() + 
-    				"(" + data.getBlockId() + "/" + data.getBlockNum() + "), show part: " + 
-    				new String(data.getData()) + "...");
+    				"(" + data.getBlockId() + "/" + data.getBlockNum() + "): " + 
+    				new String(data.getData()) + "..., length = " + data.getLength());
     	}
     	List<Resource<String>> blockRes = blockStrs.stream()
                 .map(str -> new Resource<>(str)).collect(Collectors.toList());
@@ -71,16 +80,33 @@ public class DataNodeController {
 				);
     }
     
+    /** 上传文件块 */
     @PostMapping("/blocks")
     public @ResponseBody 
     String saveBlock(@RequestBody Block block) {
     	BlockData blockData = new BlockData(block.getFilename(), 
-    			block.getBlockNum(), block.getBlockId(), block.getData());
+    			block.getBlockNum(), block.getBlockId(), block.getData(), block.getLength());
     	blockDataRepository.save(blockData);
     	BlockInfo blockInfo = new BlockInfo(blockData.getFilename(), blockData.getBlockNum(), blockData.getBlockId());
 		blockInfoRepository.save(blockInfo);
 		return "Save Block Success";
     }
     
+    /** 下载文件块 
+     * @throws UnsupportedEncodingException */
+    @GetMapping("/blocks/{identityUrl}")
+    public @ResponseBody 
+    Block getBlock(@PathVariable String identityUrl) {
+		// 转换URL的转义字符
+    	String identity = "";
+		try {
+			identity = URLDecoder.decode(identityUrl, "UTF-8");
+		} catch (UnsupportedEncodingException e) {
+			e.printStackTrace();
+		}
+    	logger.info("DownLoad Block: " + identity + "(" + identityUrl + ")");
+    	BlockData blockData = blockDataRepository.findByIdentity(identity);
+    	return new Block(identity, blockData.getData(), blockData.getLength());
+    }
     
 }

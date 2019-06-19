@@ -1,4 +1,4 @@
-package AldebaRain.hdfs.namenode;
+package AldebaRain.hdfs.namenode.maps;
 
 import java.io.Serializable;
 import java.util.ArrayList;
@@ -13,12 +13,12 @@ public class BlockMap implements Serializable {
 	private String filename;
 	
 	/** 文件块编号 */
-	private int blockId;
+	private Integer blockId;
 	
 	/** 所在DataNode */
 	private List<String> uris;
 
-	public BlockMap(String filename, int blockId, String uri) {
+	public BlockMap(String filename, Integer blockId, String uri) {
 		this.filename = filename;
 		this.blockId = blockId;
 		uris = new ArrayList<>();
@@ -33,7 +33,7 @@ public class BlockMap implements Serializable {
 	public String getFilename() {
 		return filename;
 	}
-	public int getBlockId() {
+	public Integer getBlockId() {
 		return blockId;
 	}
 	public List<String> getUris() {
