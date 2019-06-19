@@ -5,7 +5,6 @@ import static org.springframework.hateoas.mvc.ControllerLinkBuilder.methodOn;
 
 import java.io.UnsupportedEncodingException;
 import java.net.URLDecoder;
-import java.net.URLEncoder;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -27,17 +26,14 @@ import org.springframework.http.HttpMethod;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.client.RestTemplate;
 
-import AldebaRain.hdfs.Block;
-import AldebaRain.hdfs.namenode.maps.BlockMap;
-import AldebaRain.hdfs.namenode.maps.FileMap;
-import AldebaRain.hdfs.util.CombineFile;
-import AldebaRain.hdfs.util.SplitFile;
+import AldebaRain.hdfs.*;
+import AldebaRain.hdfs.namenode.maps.*;
+import AldebaRain.hdfs.util.*;
 
 @Controller
 public class NameNodeController {
@@ -100,26 +96,29 @@ public class NameNodeController {
         this.refreshFileMaps();
         
         List<String> blockStrs = new ArrayList<>(); // 上传成功的显示信息
-        // 发送所有块
+        // 根据副本数发送所有块
+        logger.info("Upload File: CopyNum = " + Main.CopyNum);
         for (Block block: blocks) {
-        	// 负载均衡：随机在DataNode列表中选择一个
-        	int index = (int) (Math.random() * datanodeList.size());
-            // 封装发送的块数据
-        	Integer blockId = block.getBlockId();
-    		Block blockData = new Block(filename, blockNum, blockId, block.getData(), block.getLength());
-    		// 调用DataNode的方法上传块
-        	String uri = String.valueOf(datanodeList.get(index).getUri());
-            String api = getApiByUri(uri, "blocks");
-            restTemplate.postForEntity(api, blockData, String.class).getBody();
-            // 添加上传块的信息到fileMaps
-            Block blockInfo = new Block(filename, blockNum, blockId);
-            addBlockToMap(blockInfo, uri);
-            // 便于显示结果
-            int len = block.getLength();
-        	int showNum = (8 < len) ? 8 : len; // 显示的byte数
-    		byte[] partData = new byte[showNum];
-    		System.arraycopy(block.getData(), 0, partData, 0, showNum);
-            blockStrs.add(new String(partData));
+        	for (int i = 0; i < Main.CopyNum; i++) {
+            	// 负载均衡：随机在DataNode列表中选择一个
+            	int index = (int) (Math.random() * datanodeList.size());
+                // 封装发送的块数据
+            	Integer blockId = block.getBlockId();
+        		Block blockData = new Block(filename, blockNum, blockId, block.getData(), block.getLength());
+        		// 调用DataNode的方法上传块
+            	String uri = String.valueOf(datanodeList.get(index).getUri());
+                String api = getApiByUri(uri, "blocks");
+                restTemplate.postForEntity(api, blockData, String.class).getBody();
+                // 添加上传块的信息到fileMaps
+                Block blockInfo = new Block(filename, blockNum, blockId);
+                addBlockToMap(blockInfo, uri);
+                // 便于显示结果
+                int len = block.getLength();
+            	int showNum = (Main.ShowNum < len) ? Main.ShowNum : len; // 显示的byte数
+        		byte[] partData = new byte[showNum];
+        		System.arraycopy(block.getData(), 0, partData, 0, showNum);
+                blockStrs.add(new String(partData));
+        	}
         }
     	List<Resource<String>> blockRes = blockStrs.stream()
                 .map(str -> new Resource<>(str)).collect(Collectors.toList());

@@ -24,7 +24,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.ResponseBody;
 
-import AldebaRain.hdfs.Block;
+import AldebaRain.hdfs.*;
 import AldebaRain.hdfs.datanode.blocks.*;
 
 @Controller
@@ -71,7 +71,7 @@ public class DataNodeController {
     	List<String> blockStrs = new ArrayList<>();
     	for (BlockData data: blockList) {
             int len = data.getLength();
-        	int showNum = (8 < len) ? 8 : len; // 显示的byte数
+        	int showNum = (Main.ShowNum < len) ? Main.ShowNum : len; // 显示的byte数
     		byte[] partData = new byte[showNum];
     		System.arraycopy(data.getData(), 0, partData, 0, showNum);
     		blockStrs.add(data.getFilename() + 
