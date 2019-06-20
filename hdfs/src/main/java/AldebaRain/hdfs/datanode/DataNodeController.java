@@ -25,6 +25,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.ResponseBody;
 
 import AldebaRain.hdfs.*;
+import AldebaRain.hdfs.config.Configs;
 import AldebaRain.hdfs.datanode.blocks.*;
 
 @Controller
@@ -43,6 +44,9 @@ public class DataNodeController {
 
 	@Autowired
 	private BlockDataRepository blockDataRepository;
+
+	@Autowired
+	private Configs configs;
 	
     @GetMapping("/datanode-debug")
     public @ResponseBody
@@ -60,7 +64,8 @@ public class DataNodeController {
     	 List<BlockInfo> blockInfos = blockInfoRepository.findAll();
     	 List<Block> blocks = new ArrayList<>();
     	 for (BlockInfo blockInfo: blockInfos)
-    		 blocks.add(new Block(blockInfo.getFilename(), blockInfo.getBlockNum(), blockInfo.getBlockId()));
+    		 blocks.add(new Block(blockInfo.getFilename(), configs.getBlockSize(), blockInfo.getBlockNum(), 
+    				 blockInfo.getBlockId()));
     	return blocks;
     }
 
@@ -71,7 +76,7 @@ public class DataNodeController {
     	List<String> blockStrs = new ArrayList<>();
     	for (BlockData data: blockList) {
             int len = data.getLength();
-        	int showNum = (Main.ShowNum < len) ? Main.ShowNum : len; // 显示的byte数
+        	int showNum = (configs.getShowNum() < len) ? configs.getShowNum() : len; // 显示的byte数
     		byte[] partData = new byte[showNum];
     		System.arraycopy(data.getData(), 0, partData, 0, showNum);
     		blockStrs.add(data.getFilename() + 

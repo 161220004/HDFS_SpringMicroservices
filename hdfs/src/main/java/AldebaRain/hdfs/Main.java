@@ -11,13 +11,13 @@ import AldebaRain.hdfs.namenode.NameNodeServer;
 public class Main {
 
 	/** 块大小，为64MB */
-	public static int BlockSize = 64;
+	//public static int BlockSize = 64;
 
 	/** 副本数 */
-	public static int CopyNum = 3; 
+	//public static int CopyNum = 3; 
 
 	/** Get方法中展示某一块时的字节数（最好小于BlockSize） */
-	public static int ShowNum = 32;
+	//public static int ShowNum = 32;
 
 	public static void main(String[] args) {
 

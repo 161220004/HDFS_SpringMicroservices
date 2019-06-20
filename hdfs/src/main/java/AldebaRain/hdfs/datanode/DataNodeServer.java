@@ -7,7 +7,7 @@ import org.springframework.context.annotation.ComponentScan;
 
 @EnableAutoConfiguration
 @EnableDiscoveryClient
-@ComponentScan({"AldebaRain.hdfs.datanode"})
+@ComponentScan({"AldebaRain.hdfs.datanode", "AldebaRain.hdfs.config"})
 public class DataNodeServer {
 
 	public static void main(String[] args) {

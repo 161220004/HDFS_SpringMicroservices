@@ -5,12 +5,12 @@ import org.springframework.context.annotation.PropertySource;
 import org.springframework.stereotype.Component;
 
 @Component
-@PropertySource(value = "classpath:config.properties", encoding = "UTF-8", ignoreResourceNotFound = true)
+@PropertySource(value = "classpath:configs.properties", encoding = "UTF-8", ignoreResourceNotFound = true)
 public class Configs {
 
 	/** 块大小 */
 	@Value("${BlockSize}")
-	private int BlockSize ; 
+	private int BlockSize; 
 
 	/** 副本数 */
 	@Value("${CopyNum}")

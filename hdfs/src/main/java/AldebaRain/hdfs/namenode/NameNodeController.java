@@ -32,6 +32,7 @@ import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.client.RestTemplate;
 
 import AldebaRain.hdfs.*;
+import AldebaRain.hdfs.config.Configs;
 import AldebaRain.hdfs.namenode.maps.*;
 import AldebaRain.hdfs.util.*;
 
@@ -54,6 +55,9 @@ public class NameNodeController {
 	@Autowired
 	private RestTemplate restTemplate;
 
+	@Autowired
+	private Configs configs;
+	
 	/** 当前所有DataNode服务实例 */
 	private List<ServiceInstance> datanodeList;
 	
@@ -89,7 +93,7 @@ public class NameNodeController {
 	public @ResponseBody 
 	Resources<Resource<String>> saveFile(@RequestParam String filename) {
 		// 分割文件并保存至blocks
-		SplitFile splitFile = new SplitFile(filename);
+		SplitFile splitFile = new SplitFile(filename, configs.getBlockSize());
 		List<Block> blocks = splitFile.split();
 		int blockNum = splitFile.getBlockNum();
 		// 刷新，获取当前活动的DataNode列表以及当前fileMaps
@@ -97,9 +101,9 @@ public class NameNodeController {
         
         List<String> blockStrs = new ArrayList<>(); // 上传成功的显示信息
         // 根据副本数发送所有块
-        logger.info("Upload File: CopyNum = " + Main.CopyNum);
+        logger.info("Upload File: CopyNum = " + configs.getCopyNum());
         for (Block block: blocks) {
-        	for (int i = 0; i < Main.CopyNum; i++) {
+        	for (int i = 0; i < configs.getCopyNum(); i++) {
             	// 负载均衡：随机在DataNode列表中选择一个
             	int index = (int) (Math.random() * datanodeList.size());
                 // 封装发送的块数据
@@ -110,11 +114,11 @@ public class NameNodeController {
                 String api = getApiByUri(uri, "blocks");
                 restTemplate.postForEntity(api, blockData, String.class).getBody();
                 // 添加上传块的信息到fileMaps
-                Block blockInfo = new Block(filename, blockNum, blockId);
+                Block blockInfo = new Block(filename, configs.getBlockSize(), blockNum, blockId);
                 addBlockToMap(blockInfo, uri);
                 // 便于显示结果
                 int len = block.getLength();
-            	int showNum = (Main.ShowNum < len) ? Main.ShowNum : len; // 显示的byte数
+            	int showNum = (configs.getShowNum() < len) ? configs.getShowNum() : len; // 显示的byte数
         		byte[] partData = new byte[showNum];
         		System.arraycopy(block.getData(), 0, partData, 0, showNum);
                 blockStrs.add(new String(partData));

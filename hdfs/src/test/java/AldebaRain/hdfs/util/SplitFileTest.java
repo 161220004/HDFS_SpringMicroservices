@@ -30,7 +30,7 @@ public class SplitFileTest {
 
         System.out.println("Create File Success");
         
-		SplitFile splitFile = new SplitFile(fileName);
+		SplitFile splitFile = new SplitFile(fileName, 64);
 		List<Block> blocks = splitFile.split();
 		for (Block block: blocks) {
 			byte[] tmp = Arrays.copyOf(block.getData(), 8);

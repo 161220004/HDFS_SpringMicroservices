@@ -22,7 +22,7 @@ public class Block implements Serializable {
 	private byte[] data;
 
 	/** 块内容长度 */
-	private int length = Main.BlockSize;
+	private int length;
 
 	/** filename+id转identity */
 	public static String toIdentity(String name, Integer id) {
@@ -47,12 +47,13 @@ public class Block implements Serializable {
 	}
 
 	/** Info型构造，用于向NameNode进行BlockReport以及SplitFile */
-	public Block(String filename, int blockNum, Integer blockId) {
+	public Block(String filename, int blockSize, int blockNum, Integer blockId) {
 		this.filename = filename;
 		this.blockId = blockId;
 		identity = toIdentity(filename, blockId);
 		this.blockNum = blockNum;
-		this.data = new byte[Main.BlockSize];
+		this.data = new byte[blockSize];
+		this.length = blockSize;
 	}
 	
 	/** Data型构造，用于从DataNode下载，含byte数组 */
