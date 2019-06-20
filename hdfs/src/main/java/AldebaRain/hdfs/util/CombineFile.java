@@ -33,6 +33,8 @@ public class CombineFile {
 	public void write() {
 		File file = new File(filename);
 		if (!file.exists()) {
+			if (!file.getParentFile().exists())
+				file.getParentFile().mkdirs();
 			try {
 				file.createNewFile();
 			} catch (IOException e) {

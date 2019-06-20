@@ -20,6 +20,10 @@ public class Configs {
 	@Value("${ShowNum}")
 	private int ShowNum;
 
+	/** 分割文件过程中，等待文件分割结束的最长时间 */
+	@Value("${AwaitTime}")
+	private int AwaitTime;
+
 	public int getBlockSize() {
 		return BlockSize;
 	}
@@ -30,6 +34,10 @@ public class Configs {
 
 	public int getShowNum() {
 		return ShowNum;
+	}
+
+	public int getAwaitTime() {
+		return AwaitTime;
 	}
 	
 }

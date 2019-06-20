@@ -93,13 +93,21 @@ public class NameNodeController {
 	public @ResponseBody 
 	Resources<Resource<String>> saveFile(@RequestParam String filename) {
 		// 分割文件并保存至blocks
-		SplitFile splitFile = new SplitFile(filename, configs.getBlockSize());
+		SplitFile splitFile = new SplitFile(filename, configs.getBlockSize(), configs.getAwaitTime());
 		List<Block> blocks = splitFile.split();
 		int blockNum = splitFile.getBlockNum();
 		// 刷新，获取当前活动的DataNode列表以及当前fileMaps
         this.refreshFileMaps();
-        
-        List<String> blockStrs = new ArrayList<>(); // 上传成功的显示信息
+        // 上传成功的显示信息
+        List<String> blockStrs = new ArrayList<>(); 
+        // 若该文件已存在于HDFS，取消上传
+        if (fileMaps.containsKey(filename)) {
+        	blockStrs.add("File " + filename + " Already Exists, Please Upload a New File");
+        	List<Resource<String>> blockRes = blockStrs.stream()
+                    .map(str -> new Resource<>(str)).collect(Collectors.toList());
+    		return new Resources<>(blockRes
+    				, linkTo(methodOn(NameNodeController.class).saveFile(filename)).withSelfRel());
+        }
         // 根据副本数发送所有块
         logger.info("Upload File: CopyNum = " + configs.getCopyNum());
         for (Block block: blocks) {
@@ -139,11 +147,18 @@ public class NameNodeController {
 		String filename = getFilenameFromUrl(path.substring(new String("/files/").length()));
 		//String[] pathStrs = filename.split("[/]");
     	logger.info("DownLoad File: " + filename);
-    	// 下载成功的显示信息
-        List<String> uriStrs = new ArrayList<>(); 
 		// 刷新，获取当前活动的DataNode列表以及当前fileMaps
         this.refreshFileMaps();
-        //if (fileMaps.containsKey(filename))
+    	// 下载成功的显示信息
+        List<String> uriStrs = new ArrayList<>(); 
+        // 若该文件不存在于HDFS，取消下载
+        if (!fileMaps.containsKey(filename)) {
+        	uriStrs.add("File " + filename + " Not Found, DownLoad Failed");
+        	List<Resource<String>> uriRes = uriStrs.stream()
+                    .map(str -> new Resource<>(str)).collect(Collectors.toList());
+    		return new Resources<>(uriRes
+    				, linkTo(methodOn(NameNodeController.class).saveFile(filename)).withSelfRel());
+        }
         FileMap fileMap = fileMaps.get(filename);
         Map<Integer, BlockMap> blockMaps = fileMap.getBlockMaps();
         // 获取byte数组的List
@@ -183,11 +198,18 @@ public class NameNodeController {
 		String filename = getFilenameFromUrl(path.substring(new String("/files/").length()));
 		//String[] pathStrs = filename.split("[/]");
     	logger.info("Delete File: " + filename);
-    	// 下载成功的显示信息
-        List<String> uriStrs = new ArrayList<>(); 
 		// 刷新，获取当前活动的DataNode列表以及当前fileMaps
         this.refreshFileMaps();
-        //if (fileMaps.containsKey(filename))
+    	// 下载成功的显示信息
+        List<String> uriStrs = new ArrayList<>(); 
+        // 若该文件不存在于HDFS，取消删除
+        if (!fileMaps.containsKey(filename)) {
+        	uriStrs.add("File " + filename + " Not Found, Delete Failed");
+        	List<Resource<String>> uriRes = uriStrs.stream()
+                    .map(str -> new Resource<>(str)).collect(Collectors.toList());
+    		return new Resources<>(uriRes
+    				, linkTo(methodOn(NameNodeController.class).saveFile(filename)).withSelfRel());
+        }
         FileMap fileMap = fileMaps.get(filename);
         Map<Integer, BlockMap> blockMaps = fileMap.getBlockMaps();
         for (BlockMap blockMap: blockMaps.values()) {

@@ -38,23 +38,16 @@ public class SplitRunnable implements Runnable {
 	
 	@Override
 	public void run() {
-//		OutputStream fos;
 		try {
 			// 移动到分割点
 			rfile.seek(startPos);
 			// 从分割起点开始读取
 			int bNum = rfile.read(block.getData());
 			block.setLength(bNum);
-//			System.out.println(blockName + ": Split " + bNum + "B (" + Math.round((double) bNum / (1024.0 * 1024.0)) + "M)");
-			
-			// 写入为块文件
-//			fos = new FileOutputStream(blockName);
-//			fos.write(block, 0, bNum);
-//			fos.flush();
-//			fos.close();
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
+    	SplitFile.threadCountDown.countDown();
 	}
 
 }
