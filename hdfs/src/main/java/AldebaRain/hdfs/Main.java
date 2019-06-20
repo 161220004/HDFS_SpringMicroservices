@@ -51,7 +51,7 @@ public class Main {
 	}
 
 	protected static void usage() {
-		System.out.println("Usage: java -jar ... <server-name> [server-port]");
+		System.out.println("Usage: mvn spring-boot:run -P<server-name> [-Dserver.port=<server-port>]");
 		System.out.println("     where server-name is 'registration' or 'namenode' or 'datanode' and server-port > 1024");
 	}
 }
